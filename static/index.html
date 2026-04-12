@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeReviewEnv</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--ink:#0a0a0a;--ink-2:#2d2d2d;--ink-3:#5a5a5a;--ink-4:#8c8c8c;--ink-5:#b8b8b8;
+--paper:#f5f3ee;--paper-2:#eeece7;--paper-3:#e4e1da;--paper-4:#d8d4cb;
+--red:#c0392b;--red-light:#fae8e6;--amber:#b8621a;--amber-light:#fdf1e3;
+--teal:#0e6655;--teal-light:#e3f5f2;--blue:#1a4b8c;--blue-light:#e8eef8;
+--rule:rgba(10,10,10,0.12);
+--ff-display:'Syne',sans-serif;--ff-mono:'DM Mono',monospace;
+--ease-out:cubic-bezier(0.16,1,0.3,1);
+}
+
+body{font-family:var(--ff-display);background:var(--paper);color:var(--ink);min-height:100vh;overflow-x:hidden}
+
+/* ── GRID OVERLAY ── */
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+background-image:
+linear-gradient(var(--rule) 1px,transparent 1px),
+linear-gradient(90deg,var(--rule) 1px,transparent 1px);
+background-size:80px 80px}
+
+.app{position:relative;z-index:1;max-width:1360px;margin:0 auto;padding:0 40px 80px}
+
+/* ── HEADER ── */
+.header{display:grid;grid-template-columns:1fr auto;align-items:end;padding:56px 0 40px;border-bottom:2px solid var(--ink);margin-bottom:48px}
+.header-left h1{font-size:clamp(40px,5vw,72px);font-weight:800;letter-spacing:-3px;line-height:0.9;color:var(--ink)}
+.header-left h1 em{font-style:normal;color:var(--red)}
+.header-sub{font-size:13px;font-weight:400;color:var(--ink-3);margin-top:16px;font-family:var(--ff-mono);letter-spacing:0.02em;max-width:440px;line-height:1.7}
+.header-meta{text-align:right}
+.version-tag{display:inline-flex;align-items:center;gap:8px;font-family:var(--ff-mono);font-size:11px;font-weight:400;color:var(--ink-3);letter-spacing:0.1em;text-transform:uppercase}
+.live-dot{width:7px;height:7px;background:var(--teal);border-radius:50%;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ── STATS BAR ── */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);border:1.5px solid var(--ink);margin-bottom:48px}
+.stat-cell{padding:24px 28px;border-right:1.5px solid var(--ink)}
+.stat-cell:last-child{border-right:none}
+.stat-num{font-size:42px;font-weight:800;letter-spacing:-2px;line-height:1;color:var(--ink)}
+.stat-num.dim{color:var(--ink-4)}
+.stat-lbl{font-family:var(--ff-mono);font-size:10px;color:var(--ink-4);text-transform:uppercase;letter-spacing:0.15em;margin-top:6px}
+
+/* ── TABS / CONTROLS ── */
+.control-row{display:flex;align-items:center;gap:0;margin-bottom:32px;border:1.5px solid var(--ink)}
+.mode-tab{flex:1;padding:14px 20px;border:none;border-right:1.5px solid var(--ink);background:transparent;font-family:var(--ff-display);font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-3);letter-spacing:0.02em;transition:background 0.15s,color 0.15s;text-align:center}
+.mode-tab:last-of-type{border-right:1.5px solid var(--ink)}
+.mode-tab:hover{background:var(--paper-2)}
+.mode-tab.active{background:var(--ink);color:var(--paper)}
+
+.diff-group{display:flex;border-right:1.5px solid var(--ink)}
+.diff-btn{padding:14px 22px;border:none;border-right:1.5px solid var(--ink);background:transparent;font-family:var(--ff-mono);font-size:11px;font-weight:500;cursor:pointer;color:var(--ink-4);text-transform:uppercase;letter-spacing:0.1em;transition:background 0.15s,color 0.15s}
+.diff-btn:hover{background:var(--paper-2)}
+.diff-btn.active.e{background:var(--teal);color:#fff}
+.diff-btn.active.m{background:var(--amber);color:#fff}
+.diff-btn.active.h{background:var(--red);color:#fff}
+
+.snippet-sel{padding:14px 16px;border:none;border-right:1.5px solid var(--ink);background:transparent;font-family:var(--ff-mono);font-size:12px;color:var(--ink);cursor:pointer;outline:none;min-width:200px;flex:1}
+.snippet-sel option{background:var(--paper)}
+
+.run-btn{padding:14px 32px;border:none;border-right:1.5px solid var(--ink);background:var(--ink);color:var(--paper);font-family:var(--ff-display);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;letter-spacing:0.02em;transition:background 0.15s}
+.run-btn:hover:not(:disabled){background:var(--ink-2)}
+.run-btn:disabled{opacity:0.4;cursor:not-allowed}
+.run-btn .spin{display:none;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite}
+.run-btn.loading .spin{display:block}
+.run-btn.loading .ri{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.run-all-btn{padding:14px 24px;border:none;background:transparent;font-family:var(--ff-mono);font-size:11px;font-weight:500;color:var(--ink-3);cursor:pointer;letter-spacing:0.08em;text-transform:uppercase;transition:color 0.15s}
+.run-all-btn:hover:not(:disabled){color:var(--ink)}
+.run-all-btn:disabled{opacity:0.4;cursor:not-allowed}
+
+/* ── CUSTOM CODE SECTION ── */
+.custom-section{display:none;margin-bottom:32px}
+.custom-section.on{display:block;animation:fadeSlide 0.3s var(--ease-out)}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.editor-frame{border:1.5px solid var(--ink);background:var(--paper)}
+.editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1.5px solid var(--ink)}
+.editor-label{font-family:var(--ff-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.15em;color:var(--ink-3)}
+.sample-pills{display:flex;gap:0}
+.sample-pill{padding:6px 14px;border:1px solid var(--ink);border-right:none;background:transparent;font-family:var(--ff-mono);font-size:10px;cursor:pointer;color:var(--ink-3);letter-spacing:0.08em;text-transform:uppercase;transition:background 0.1s}
+.sample-pill:last-child{border-right:1px solid var(--ink)}
+.sample-pill:hover{background:var(--paper-2);color:var(--ink)}
+
+.code-edit{width:100%;min-height:260px;padding:20px;border:none;outline:none;background:transparent;font-family:var(--ff-mono);font-size:13px;line-height:1.8;color:var(--ink);resize:vertical;tab-size:4}
+.code-edit::placeholder{color:var(--ink-5)}
+
+.editor-foot{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-top:1.5px solid var(--ink)}
+.char-info{font-family:var(--ff-mono);font-size:10px;color:var(--ink-4);letter-spacing:0.05em}
+
+/* ── MAIN LAYOUT ── */
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1.5px solid var(--ink)}
+@media(max-width:1000px){.main-grid{grid-template-columns:1fr}}
+
+/* ── CODE PANEL ── */
+.code-panel{border-right:1.5px solid var(--ink)}
+@media(max-width:1000px){.code-panel{border-right:none;border-bottom:1.5px solid var(--ink)}}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1.5px solid var(--ink);background:var(--paper-2)}
+.panel-title{font-family:var(--ff-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.15em;color:var(--ink-3)}
+.task-id{font-family:var(--ff-mono);font-size:11px;color:var(--ink-4)}
+.code-ctx{padding:14px 24px;border-bottom:1px solid var(--rule);font-family:var(--ff-mono);font-size:12px;color:var(--ink-3);line-height:1.6;background:var(--paper-2)}
+.code-ctx strong{color:var(--ink);font-weight:500}
+.code-scroll{overflow:auto;max-height:520px}
+.code-scroll pre{margin:0;padding:20px 24px;background:transparent!important;font-family:var(--ff-mono)!important;font-size:12.5px;line-height:1.9;tab-size:4}
+
+.cl{display:block;padding:1px 8px;border-radius:2px;transition:background 0.3s,box-shadow 0.3s;position:relative}
+.ln{display:inline-block;width:30px;color:var(--ink-5);text-align:right;margin-right:18px;font-size:11px;user-select:none}
+.cl.hl-bug{background:rgba(192,57,43,0.08);box-shadow:inset 3px 0 0 var(--red)}
+.cl.hl-perf{background:rgba(184,98,26,0.08);box-shadow:inset 3px 0 0 var(--amber)}
+.cl.hl-sec{background:rgba(14,102,85,0.08);box-shadow:inset 3px 0 0 var(--teal)}
+.cl.hl-ok{background:rgba(14,102,85,0.05);box-shadow:inset 3px 0 0 rgba(14,102,85,0.3)}
+
+/* ── AGENT PANEL ── */
+.agent-panel{display:flex;flex-direction:column}
+.agent-panel .panel-head{background:var(--paper-2)}
+.agent-body{padding:24px;flex:1;overflow-y:auto;max-height:580px}
+
+.status-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border:1px solid var(--rule);font-family:var(--ff-mono);font-size:12px;color:var(--ink-3);margin-bottom:20px;background:var(--paper-2)}
+.status-bar.running{border-color:var(--blue);color:var(--blue);background:var(--blue-light)}
+.status-bar.done{border-color:var(--teal);color:var(--teal);background:var(--teal-light)}
+.status-bar.warn{border-color:var(--red);color:var(--red);background:var(--red-light)}
+.s-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.running .s-dot{animation:blink 1s infinite}
+
+.thinking{display:none;align-items:center;gap:10px;font-family:var(--ff-mono);font-size:11px;color:var(--ink-4);margin:12px 0;letter-spacing:0.05em}
+.thinking.on{display:flex}
+.t-dots span{display:inline-block;width:5px;height:5px;background:var(--ink-4);border-radius:50%;animation:bounce 1.3s ease-in-out infinite both;margin-right:2px}
+.t-dots span:nth-child(1){animation-delay:-0.26s}
+.t-dots span:nth-child(2){animation-delay:-0.13s}
+@keyframes bounce{0%,80%,100%{transform:scale(0);opacity:0.3}40%{transform:scale(1);opacity:1}}
+
+/* ── STEP CARDS ── */
+.steps-wrap{display:flex;flex-direction:column;gap:1px}
+.step-card{border:1px solid var(--rule);background:var(--paper);animation:slideIn 0.35s var(--ease-out);overflow:hidden}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.step-card:hover{border-color:var(--ink-5)}
+
+.step-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--rule)}
+.step-left{display:flex;align-items:center;gap:10px}
+.step-n{font-family:var(--ff-mono);font-size:11px;font-weight:500;color:var(--ink-4);min-width:20px}
+.type-badge{font-family:var(--ff-mono);font-size:9px;font-weight:500;padding:3px 8px;text-transform:uppercase;letter-spacing:0.1em}
+.type-badge.syntax{background:var(--red-light);color:var(--red)}
+.type-badge.logic{background:var(--amber-light);color:var(--amber)}
+.type-badge.security{background:var(--teal-light);color:var(--teal)}
+.type-badge.performance{background:var(--blue-light);color:var(--blue)}
+.type-badge.approve{background:var(--teal-light);color:var(--teal)}
+.line-ref{font-family:var(--ff-mono);font-size:10px;color:var(--ink-4)}
+
+.reward-badge{font-family:var(--ff-mono);font-size:13px;font-weight:500}
+.reward-badge.hi{color:var(--teal)}
+.reward-badge.mid{color:var(--amber)}
+.reward-badge.lo{color:var(--red)}
+
+.sev-badge{font-family:var(--ff-mono);font-size:9px;font-weight:500;padding:3px 8px;text-transform:uppercase;letter-spacing:0.1em}
+.sev-badge.critical{background:var(--red-light);color:var(--red)}
+.sev-badge.major{background:var(--amber-light);color:var(--amber)}
+.sev-badge.minor{background:var(--blue-light);color:var(--blue)}
+
+.step-body{padding:12px 16px}
+.step-desc{font-size:13px;color:var(--ink-2);line-height:1.65;margin-bottom:0}
+.step-fix{font-family:var(--ff-mono);font-size:11px;color:var(--teal);background:var(--teal-light);padding:8px 12px;margin-top:10px;border-left:3px solid var(--teal);line-height:1.6}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chip{font-family:var(--ff-mono);font-size:10px;padding:3px 8px}
+.chip.p{background:var(--teal-light);color:var(--teal)}
+.chip.m{background:var(--amber-light);color:var(--amber)}
+.chip.f{background:var(--red-light);color:var(--red)}
+
+/* ── SCORE BAR ── */
+.score-section{display:none;padding:20px 0 0;margin-top:16px;border-top:1px solid var(--rule)}
+.score-section.on{display:block;animation:fadeSlide 0.4s var(--ease-out)}
+.score-row{display:flex;align-items:center;gap:16px}
+.score-lbl{font-family:var(--ff-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:var(--ink-4);min-width:90px}
+.score-track{flex:1;height:4px;background:var(--paper-3)}
+.score-fill{height:100%;width:0;transition:width 1s var(--ease-out)}
+.score-fill.hi{background:var(--teal)}
+.score-fill.mid{background:var(--amber)}
+.score-fill.lo{background:var(--red)}
+.score-val{font-family:var(--ff-mono);font-size:20px;font-weight:500;min-width:52px;text-align:right}
+.score-val.hi{color:var(--teal)}
+.score-val.mid{color:var(--amber)}
+.score-val.lo{color:var(--red)}
+
+/* ── EMPTY STATE ── */
+.empty-state{padding:60px 0;text-align:center;color:var(--ink-4)}
+.empty-state .icon-big{font-family:var(--ff-mono);font-size:48px;font-weight:300;line-height:1;color:var(--ink-5);margin-bottom:20px}
+.empty-state p{font-family:var(--ff-mono);font-size:11px;line-height:1.8;letter-spacing:0.03em}
+
+/* ── CUSTOM SUMMARY ── */
+.custom-summary{display:none;margin-top:20px;padding:16px;border:1px solid var(--rule);background:var(--paper-2)}
+.custom-summary.on{display:block;animation:fadeSlide 0.4s var(--ease-out)}
+.cs-text{font-family:var(--ff-display);font-size:15px;font-weight:600;margin-bottom:12px;color:var(--ink)}
+.cs-badges{display:flex;flex-wrap:wrap;gap:6px}
+
+/* ── RUN ALL SUMMARY ── */
+.benchmark-section{display:none;margin-top:0;border:1.5px solid var(--ink);border-top:none}
+.benchmark-section.on{display:block;animation:fadeSlide 0.4s var(--ease-out)}
+.benchmark-head{padding:20px 28px;border-bottom:1.5px solid var(--ink);background:var(--paper-2)}
+.benchmark-head h2{font-size:14px;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;font-family:var(--ff-mono);color:var(--ink-3)}
+.bench-grid{display:grid;grid-template-columns:repeat(3,1fr)}
+.bench-cell{padding:32px 28px;border-right:1.5px solid var(--ink)}
+.bench-cell:last-child{border-right:none}
+.bench-diff{font-family:var(--ff-mono);font-size:10px;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:12px}
+.bench-diff.e{color:var(--teal)}
+.bench-diff.m{color:var(--amber)}
+.bench-diff.h{color:var(--red)}
+.bench-score{font-size:52px;font-weight:800;letter-spacing:-3px;line-height:1}
+.bench-eps{font-family:var(--ff-mono);font-size:11px;color:var(--ink-4);margin-top:6px}
+
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--ink-5);border-radius:0}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <h1>Code<br>Review<em>.</em></h1>
+      <p class="header-sub">Real-time AI agent — detecting syntax errors, logic bugs, security vulnerabilities &amp; performance issues in Python code.</p>
+    </div>
+    <div class="header-meta">
+      <div class="version-tag"><span class="live-dot"></span>CodeReviewEnv v1.0 — Live</div>
+    </div>
+  </header>
+
+  <!-- STATS -->
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-cell"><div class="stat-num dim" id="statEp">0</div><div class="stat-lbl">Episodes run</div></div>
+    <div class="stat-cell"><div class="stat-num dim" id="statBugs">0</div><div class="stat-lbl">Bugs found</div></div>
+    <div class="stat-cell"><div class="stat-num dim" id="statAvg">—</div><div class="stat-lbl">Avg score</div></div>
+    <div class="stat-cell"><div class="stat-num dim" id="statPerf">0</div><div class="stat-lbl">Perfect runs</div></div>
+  </div>
+
+  <!-- CONTROL BAR -->
+  <div class="control-row" id="controlRow">
+    <button class="mode-tab active" id="tabDataset" onclick="switchMode('dataset')">Dataset</button>
+    <button class="mode-tab" id="tabCustom" onclick="switchMode('custom')">Custom</button>
+
+    <div class="diff-group" id="diffGroup">
+      <button class="diff-btn e active" data-diff="easy">Easy</button>
+      <button class="diff-btn m" data-diff="medium">Med</button>
+      <button class="diff-btn h" data-diff="hard">Hard</button>
+    </div>
+    <select class="snippet-sel" id="snippetSelect"><option value="">All snippets</option></select>
+    <button class="run-btn" id="btnRun" onclick="runAgent()"><span class="spin"></span><span class="ri">▶ Run</span></button>
+    <button class="run-all-btn" id="btnRunAll" onclick="runAllDifficulties()">Run All</button>
+  </div>
+
+  <!-- CUSTOM EDITOR -->
+  <div class="custom-section" id="customSection">
+    <div class="editor-frame">
+      <div class="editor-topbar">
+        <span class="editor-label">Python source</span>
+        <div class="sample-pills">
+          <button class="sample-pill" onclick="loadSample('security')">Security</button>
+          <button class="sample-pill" onclick="loadSample('logic')">Logic</button>
+          <button class="sample-pill" onclick="loadSample('mixed')">Mixed</button>
+        </div>
+      </div>
+      <textarea class="code-edit" id="customCode" placeholder="# Paste Python code here..." spellcheck="false"></textarea>
+      <div class="editor-foot">
+        <span class="char-info" id="charCount">0 lines · 0 chars</span>
+        <button class="run-btn" id="btnAnalyze" onclick="analyzeCustomCode()"><span class="spin"></span><span class="ri">→ Analyze</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+    <!-- CODE PANEL -->
+    <div class="code-panel">
+      <div class="panel-head">
+        <span class="panel-title">Code under review</span>
+        <span class="task-id" id="taskId">—</span>
+      </div>
+      <div class="code-ctx" id="codeCtx"><strong>Context:</strong> Select a snippet or paste your code to begin.</div>
+      <div class="code-scroll"><pre><code id="codeDisplay" class="language-python"></code></pre></div>
+    </div>
+
+    <!-- AGENT PANEL -->
+    <div class="agent-panel">
+      <div class="panel-head">
+        <span class="panel-title">Agent analysis</span>
+        <span class="task-id" id="stepCounter">0 steps</span>
+      </div>
+      <div class="agent-body">
+        <div class="status-bar" id="statusBar"><span class="s-dot"></span><span id="statusText">Waiting — run agent to begin</span></div>
+        <div class="thinking" id="thinking"><div class="t-dots"><span></span><span></span><span></span></div><span>Analyzing code...</span></div>
+        <div class="steps-wrap" id="stepsWrap"></div>
+        <div class="empty-state" id="emptyState">
+          <div class="icon-big">{ }</div>
+          <p>Step-by-step analysis will appear here.<br>Each step shows type, confidence &amp; suggested fix.</p>
+        </div>
+        <div class="custom-summary" id="customSummary">
+          <div class="cs-text" id="csText"></div>
+          <div class="cs-badges" id="csBadges"></div>
+        </div>
+        <div class="score-section" id="scoreSection">
+          <div class="score-row">
+            <span class="score-lbl">Episode score</span>
+            <div class="score-track"><div class="score-fill hi" id="scoreFill"></div></div>
+            <span class="score-val hi" id="scoreVal">0.00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BENCHMARK SUMMARY -->
+  <div class="benchmark-section" id="benchSection">
+    <div class="benchmark-head"><h2>Benchmark results</h2></div>
+    <div class="bench-grid" id="benchGrid"></div>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script>
+const API='';
+let curDiff='easy',curMode='dataset',running=false;
+let stats={ep:0,bugs:0,score:0,perf:0};
+let cache={};
+
+const SAMPLES={
+security:`import subprocess
+import pickle
+
+def run_command(user_input):
+    result = subprocess.call(user_input, shell=True)
+    return result
+
+def load_data(raw_bytes):
+    return pickle.loads(raw_bytes)
+
+def get_page(url, token):
+    import requests
+    response = requests.get(url, verify=False)
+    return response.json()
+
+def authenticate(username, password, db):
+    query = f"SELECT * FROM users WHERE name='{username}' AND pass='{password}'"
+    return db.execute(query)`,
+
+logic:`def find_maximum(numbers):
+    maximum = 0
+    for num in numbers:
+        if num > maximum:
+            maximum = num
+    return maximum
+
+def remove_duplicates(lst):
+    result = []
+    for item in lst:
+        if item not in lst:
+            result.append(item)
+    return result
+
+def count_words(sentence):
+    words = sentence.split(" ")
+    count = {}
+    for word in words:
+        if word in count:
+            count[word] = 1
+        else:
+            count[word] = 1
+    return count`,
+
+mixed:`import json
+
+def parse_input(raw_data):
+    return eval(raw_data)
+
+def process_users(users):
+    result = []
+    for i in range(len(users)):
+        user = users[i]
+        if user["age"] > 18:
+            result.append(user)
+        print("Processing:", user["password"])
+    return result
+
+def save_report(report, filename):
+    path = "/var/reports/" + filename
+    with open(path, "w") as f:
+        json.dump(report, f)
+
+def validate_age(age):
+    if age > 0:
+        return True
+    return False`
+};
+
+// ── Init ──
+document.querySelectorAll('.diff-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    if(running)return;
+    document.querySelectorAll('.diff-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+    curDiff=b.dataset.diff;
+    loadSnippets(curDiff);
+  });
+});
+
+const ta=document.getElementById('customCode');
+ta.addEventListener('input',updateCount);
+ta.addEventListener('keydown',e=>{
+  if(e.key==='Tab'){e.preventDefault();const s=ta.selectionStart;ta.value=ta.value.substring(0,s)+'    '+ta.value.substring(ta.selectionEnd);ta.selectionStart=ta.selectionEnd=s+4;updateCount();}
+});
+
+loadSnippets('easy');
+
+function updateCount(){
+  const v=ta.value;
+  document.getElementById('charCount').textContent=`${v.split('\n').length} lines · ${v.length} chars`;
+}
+
+// ── Mode ──
+function switchMode(m){
+  curMode=m;
+  document.getElementById('tabDataset').classList.toggle('active',m==='dataset');
+  document.getElementById('tabCustom').classList.toggle('active',m==='custom');
+  document.getElementById('diffGroup').style.display=m==='dataset'?'flex':'none';
+  document.getElementById('snippetSelect').style.display=m==='dataset'?'block':'none';
+  document.getElementById('btnRun').style.display=m==='dataset'?'flex':'none';
+  document.getElementById('btnRunAll').style.display=m==='dataset'?'flex':'none';
+  document.getElementById('customSection').classList.toggle('on',m==='custom');
+  clearSteps();
+  setStatus('','Waiting — run agent to begin');
+}
+
+function loadSample(t){ta.value=SAMPLES[t]||'';updateCount();}
+
+// ── Snippets ──
+async function loadSnippets(d){
+  try{
+    const r=await fetch(`${API}/api/snippets/${d}`);
+    const data=await r.json();
+    cache[d]=data.snippets;
+    const sel=document.getElementById('snippetSelect');
+    sel.innerHTML='<option value="">All snippets</option>';
+    data.snippets.forEach(s=>{sel.innerHTML+=`<option value="${s.id}">${s.id} — ${trunc(s.context,42)}</option>`;});
+  }catch(e){console.error(e);}
+}
+
+function trunc(s,n){return s.length>n?s.slice(0,n)+'…':s;}
+
+// ── Custom analyze ──
+async function analyzeCustomCode(){
+  if(running)return;
+  const code=ta.value.trim();
+  if(!code){setStatus('warn','Paste some Python code first');return;}
+  running=true;
+  const btn=document.getElementById('btnAnalyze');
+  btn.classList.add('loading');btn.disabled=true;
+  clearSteps();
+  setStatus('running','Analyzing your code...');
+  document.getElementById('thinking').classList.add('on');
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('scoreSection').classList.remove('on');
+  document.getElementById('customSummary').classList.remove('on');
+
+  try{
+    const r=await fetch(`${API}/api/analyze-custom`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
+    const data=await r.json();
+    displayCode(code,'User-submitted code','custom');
+    document.getElementById('thinking').classList.remove('on');
+    if(data.steps.length===0){setStatus('done','No issues found — code looks clean');}
+    else{await animateSteps(data.steps,code,true);showCustomSummary(data);}
+    stats.ep++;stats.bugs+=data.total_issues;
+    if(data.total_issues===0)stats.perf++;
+    updateStats();
+  }catch(e){
+    console.error(e);
+    setStatus('warn','Server error — is the API running?');
+    document.getElementById('thinking').classList.remove('on');
+  }
+  btn.classList.remove('loading');btn.disabled=false;running=false;
+}
+
+function showCustomSummary(data){
+  const el=document.getElementById('customSummary');
+  const txt=document.getElementById('csText');
+  const bdg=document.getElementById('csBadges');
+  txt.textContent=data.summary;
+  txt.style.color=data.total_issues===0?'var(--teal)':'var(--ink)';
+  let h='';
+  const sc=data.severity_counts||{};
+  if(sc.critical)h+=`<span class="type-badge syntax">${sc.critical} critical</span>`;
+  if(sc.major)h+=`<span class="type-badge logic">${sc.major} major</span>`;
+  if(sc.minor)h+=`<span class="type-badge performance">${sc.minor} minor</span>`;
+  const tc=data.type_counts||{};
+  for(const[t,c]of Object.entries(tc)){h+=`<span class="type-badge ${t}">${c} ${t}</span>`;}
+  bdg.innerHTML=h;
+  el.classList.add('on');
+}
+
+// ── Run Agent (dataset) ──
+async function runAgent(){
+  if(running)return;
+  running=true;
+  const btn=document.getElementById('btnRun');
+  btn.classList.add('loading');btn.disabled=true;
+  document.getElementById('btnRunAll').disabled=true;
+
+  const sid=document.getElementById('snippetSelect').value||null;
+  let snippets=sid?[cache[curDiff]?.find(s=>s.id===sid)].filter(Boolean):(cache[curDiff]||[]);
+  if(!snippets.length){await loadSnippets(curDiff);running=false;btn.classList.remove('loading');btn.disabled=false;document.getElementById('btnRunAll').disabled=false;return runAgent();}
+
+  for(const s of snippets)await runEpisode(s.id,curDiff);
+  btn.classList.remove('loading');btn.disabled=false;document.getElementById('btnRunAll').disabled=false;running=false;
+}
+
+async function runEpisode(sid,diff){
+  clearSteps();
+  setStatus('running','Analyzing code...');
+  document.getElementById('thinking').classList.add('on');
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('scoreSection').classList.remove('on');
+  document.getElementById('customSummary').classList.remove('on');
+  try{
+    const r=await fetch(`${API}/api/run-episode`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({difficulty:diff,snippet_id:sid})});
+    const data=await r.json();
+    displayCode(data.code,data.context,data.task_id);
+    document.getElementById('thinking').classList.remove('on');
+    await animateSteps(data.steps,data.code,false);
+    showScore(data.final_score,data.bugs_found,data.total_bugs);
+    stats.ep++;stats.bugs+=data.bugs_found;stats.score+=data.final_score;
+    if(data.final_score>=0.999)stats.perf++;
+    updateStats();
+  }catch(e){
+    console.error(e);setStatus('warn','Server error');
+    document.getElementById('thinking').classList.remove('on');
+  }
+}
+
+// ── Display ──
+function displayCode(code,ctx,taskId){
+  document.getElementById('taskId').textContent=taskId;
+  document.getElementById('codeCtx').innerHTML=`<strong>Context:</strong> ${esc(ctx)}`;
+  const lines=code.split('\n');
+  const el=document.getElementById('codeDisplay');
+  el.innerHTML='';
+  lines.forEach((l,i)=>{
+    const sp=document.createElement('span');
+    sp.className='cl';sp.dataset.line=i+1;
+    sp.innerHTML=`<span class="ln">${i+1}</span>${esc(l||' ')}`;
+    el.appendChild(sp);el.appendChild(document.createTextNode('\n'));
+  });
+  Prism.highlightAll();
+}
+
+async function animateSteps(steps,code,isCustom){
+  const wrap=document.getElementById('stepsWrap');
+  for(let i=0;i<steps.length;i++){
+    const s=steps[i];
+    setStatus('running',`Step ${i+1}/${steps.length} — analyzing...`);
+    document.getElementById('thinking').classList.add('on');
+    await delay(480);
+    document.getElementById('thinking').classList.remove('on');
+    hlLine(s.line_number,s.bug_type||s.action_type);
+    const card=makeCard(s,i+1,isCustom);
+    wrap.appendChild(card);
+    document.getElementById('stepCounter').textContent=`${i+1} step${i+1!==1?'s':''}`;
+    card.scrollIntoView({behavior:'smooth',block:'nearest'});
+    await delay(320);
+  }
+  setStatus('done',`Analysis complete — ${steps.length} issue${steps.length!==1?'s':''} found`);
+}
+
+function makeCard(s,n,isCustom){
+  const d=document.createElement('div');
+  d.className='step-card';
+  const typ=s.bug_type||s.action_type||'unknown';
+  const rw=s.reward||0;
+  const rwC=rw>=0.8?'hi':rw>=0.4?'mid':'lo';
+  const chips=(s.feedback||'').split('|').map(f=>f.trim()).filter(Boolean);
+  const chipsHtml=chips.length?`<div class="chips">${chips.map(c=>{const cl=c.startsWith('✓')?'p':c.startsWith('~')?'m':'f';return`<span class="chip ${cl}">${esc(c)}</span>`}).join('')}</div>`:'';
+  const fixHtml=s.suggestion&&s.suggestion.trim()?`<div class="step-fix">${esc(s.suggestion)}</div>`:'';
+  const rightHtml=isCustom?`<span class="sev-badge ${s.severity||''}">${(s.severity||'').toUpperCase()||'—'}</span>`:`<span class="reward-badge ${rwC}">+${rw.toFixed(2)}</span>`;
+  d.innerHTML=`
+  <div class="step-top">
+    <div class="step-left">
+      <span class="step-n">${String(n).padStart(2,'0')}</span>
+      <span class="type-badge ${typ}">${typ.toUpperCase()}</span>
+      ${s.line_number?`<span class="line-ref">L${s.line_number}</span>`:''}
+    </div>
+    ${rightHtml}
+  </div>
+  <div class="step-body">
+    <div class="step-desc">${esc(s.description||'No description')}</div>
+    ${fixHtml}${chipsHtml}
+  </div>`;
+  return d;
+}
+
+function hlLine(n,type){
+  document.querySelectorAll('.cl').forEach(l=>l.classList.remove('hl-bug','hl-perf','hl-sec','hl-ok'));
+  if(!n)return;
+  const el=document.querySelector(`.cl[data-line="${n}"]`);
+  if(el){
+    const cls=type==='security'?'hl-sec':type==='performance'?'hl-perf':type==='approve'?'hl-ok':'hl-bug';
+    el.classList.add(cls);el.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+}
+
+function showScore(sc){
+  const sec=document.getElementById('scoreSection');
+  sec.classList.add('on');
+  const p=Math.round(sc*100);
+  const cl=p>=80?'hi':p>=50?'mid':'lo';
+  const fill=document.getElementById('scoreFill');
+  fill.className=`score-fill ${cl}`;
+  setTimeout(()=>fill.style.width=`${p}%`,60);
+  const val=document.getElementById('scoreVal');
+  val.textContent=sc.toFixed(2);val.className=`score-val ${cl}`;
+}
+
+// ── Run All ──
+async function runAllDifficulties(){
+  if(running)return;
+  running=true;
+  const ba=document.getElementById('btnRunAll'),br=document.getElementById('btnRun');
+  ba.disabled=true;br.disabled=true;ba.textContent='Running...';
+  const res={};
+  for(const d of['easy','medium','hard']){
+    document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector(`.diff-btn[data-diff="${d}"]`).classList.add('active');
+    curDiff=d;
+    await loadSnippets(d);
+    const snips=cache[d]||[];
+    let tot=0;
+    for(const s of snips){await runEpisode(s.id,d);tot+=parseFloat(document.getElementById('scoreVal').textContent||'0');await delay(200);}
+    res[d]={episodes:snips.length,avg:snips.length?tot/snips.length:0};
+  }
+  showBenchmark(res);
+  ba.textContent='Run All';ba.disabled=false;br.disabled=false;running=false;
+}
+
+function showBenchmark(res){
+  const sec=document.getElementById('benchSection');
+  const grid=document.getElementById('benchGrid');
+  sec.classList.add('on');
+  grid.innerHTML=['easy','medium','hard'].map(d=>{
+    const r=res[d]||{episodes:0,avg:0};
+    const sc=r.avg;
+    const cl=sc>=0.9?'var(--teal)':sc>=0.7?'var(--amber)':'var(--red)';
+    const lbl=d==='easy'?'e':d==='medium'?'m':'h';
+    return`<div class="bench-cell"><div class="bench-diff ${lbl}">${d}</div><div class="bench-score" style="color:${cl}">${r.avg.toFixed(4)}</div><div class="bench-eps">${r.episodes} episodes</div></div>`;
+  }).join('');
+}
+
+// ── Helpers ──
+function clearSteps(){
+  document.getElementById('stepsWrap').innerHTML='';
+  document.getElementById('emptyState').style.display='block';
+  document.getElementById('customSummary').classList.remove('on');
+  document.querySelectorAll('.cl').forEach(l=>l.classList.remove('hl-bug','hl-perf','hl-sec','hl-ok'));
+}
+function setStatus(type,text){
+  const b=document.getElementById('statusBar');
+  b.className='status-bar'+(type?' '+type:'');
+  document.getElementById('statusText').textContent=text;
+}
+function updateStats(){
+  const avg=stats.ep>0?stats.score/stats.ep:0;
+  document.getElementById('statEp').textContent=stats.ep;
+  document.getElementById('statEp').classList.remove('dim');
+  document.getElementById('statBugs').textContent=stats.bugs;
+  document.getElementById('statBugs').classList.remove('dim');
+  document.getElementById('statAvg').textContent=avg>0?avg.toFixed(3):'—';
+  document.getElementById('statAvg').classList.remove('dim');
+  document.getElementById('statPerf').textContent=stats.perf;
+  document.getElementById('statPerf').classList.remove('dim');
+}
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+</script>
+</body>
+</html>

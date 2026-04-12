@@ -1,0 +1,58 @@
+name: code-review-env
+version: "1.0.0"
+description: >
+  An OpenEnv reinforcement learning environment that trains AI agents
+  to perform automated code review on Python code. The agent identifies
+  bugs, classifies severity, and suggests fixes across three difficulty levels.
+
+spec_version: 1
+type: environment
+runtime: docker
+app: server:app
+port: 7860
+
+env_vars:
+  - name: API_BASE_URL
+    description: "Base URL for the OpenAI-compatible API"
+    default: "https://api.openai.com/v1"
+  - name: MODEL_NAME
+    description: "Model name to use for inference"
+    default: "gpt-4o-mini"
+  - name: HF_TOKEN
+    description: "API key / Hugging Face token for authentication"
+    required: true
+
+tasks:
+  - name: easy
+    description: >
+      Detect single syntax errors in Python snippets — missing colons,
+      unmatched brackets and parentheses. 10 snippets, max 3 steps each.
+    dataset: code_review_env/tasks/dataset/easy.json
+    snippets: 10
+    max_steps: 3
+
+  - name: medium
+    description: >
+      Detect single logic bugs in Python snippets — off-by-one errors,
+      wrong comparison operators, incorrect variable usage. 10 snippets,
+      max 5 steps each.
+    dataset: code_review_env/tasks/dataset/medium.json
+    snippets: 10
+    max_steps: 5
+
+  - name: hard
+    description: >
+      Detect multiple issues per snippet including security vulnerabilities,
+      logic errors, and performance anti-patterns. Each snippet has 2-3 bugs.
+      10 snippets, max 10 steps each.
+    dataset: code_review_env/tasks/dataset/hard.json
+    snippets: 10
+    max_steps: 10
+
+baseline:
+  agent: inference.py
+  scores:
+    easy: 0.9999
+    medium: 0.9849
+    hard: 0.9483
+    overall: 0.9777

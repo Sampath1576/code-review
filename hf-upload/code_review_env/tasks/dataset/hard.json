@@ -1,0 +1,312 @@
+[
+  {
+    "id": "hard_001",
+    "code": "def process_user_data(users):\n    result = []\n    for i in range(len(users)):\n        user = users[i]\n        if user[\"age\"] > 18:\n            user[\"status\"] = \"adult\"\n        if user[\"age\"] > 18:\n            result.append(user)\n        password = user[\"password\"]\n        print(\"Processing user:\", password)\n    return result",
+    "context": "This function processes user data, marks adults, and returns filtered results.",
+    "bugs": [
+      {
+        "line": 3,
+        "type": "performance",
+        "severity": "minor",
+        "description": "Using range(len(users)) instead of direct iteration",
+        "fix": "for user in users:",
+        "keywords": ["range", "len", "enumerate", "direct", "iteration", "pythonic"]
+      },
+      {
+        "line": 7,
+        "type": "logic",
+        "severity": "major",
+        "description": "Duplicate condition checked twice — redundant if-block on lines 5 and 7",
+        "fix": "Combine the two if-blocks into a single conditional block",
+        "keywords": ["duplicate", "redundant", "condition", "twice", "repeated"]
+      },
+      {
+        "line": 10,
+        "type": "security",
+        "severity": "critical",
+        "description": "Printing password to console is a critical security violation",
+        "fix": "Remove the print statement or log without sensitive data",
+        "keywords": ["password", "print", "security", "sensitive", "leak", "expose", "log"]
+      }
+    ]
+  },
+  {
+    "id": "hard_002",
+    "code": "import os\nimport subprocess\n\ndef run_user_command(user_input):\n    result = subprocess.call(user_input, shell=True)\n    return result\n\ndef read_config(filename):\n    path = \"/etc/config/\" + filename\n    with open(path) as f:\n        return f.read()\n\ndef get_items(data):\n    items = []\n    for i in range(len(data)):\n        items.append(data[i])\n    return items",
+    "context": "Utility functions for running commands, reading config files, and extracting items from data.",
+    "bugs": [
+      {
+        "line": 5,
+        "type": "security",
+        "severity": "critical",
+        "description": "shell=True with user input allows command injection attacks",
+        "fix": "Use subprocess.run(shlex.split(user_input), shell=False) or validate input",
+        "keywords": ["shell", "injection", "command", "True", "subprocess", "user_input", "sanitize"]
+      },
+      {
+        "line": 9,
+        "type": "security",
+        "severity": "critical",
+        "description": "Path traversal vulnerability — user can pass '../../../etc/passwd' as filename",
+        "fix": "Sanitize filename: os.path.basename(filename) or validate against allowed paths",
+        "keywords": ["path", "traversal", "directory", "..", "basename", "sanitize"]
+      },
+      {
+        "line": 15,
+        "type": "performance",
+        "severity": "minor",
+        "description": "Unnecessary range(len()) pattern when direct iteration or list() would work",
+        "fix": "return list(data)",
+        "keywords": ["range", "len", "list", "direct", "copy"]
+      }
+    ]
+  },
+  {
+    "id": "hard_003",
+    "code": "def authenticate(username, password, db):\n    query = f\"SELECT * FROM users WHERE username='{username}' AND password='{password}'\"\n    user = db.execute(query)\n    if user:\n        return True\n    return False\n\ndef hash_data(data):\n    import hashlib\n    return hashlib.md5(data.encode()).hexdigest()\n\ndef get_users(db):\n    users = []\n    all_users = db.execute(\"SELECT * FROM users\")\n    for i in range(len(all_users)):\n        users.append(all_users[i])\n    return users",
+    "context": "Authentication and user management functions for a web application.",
+    "bugs": [
+      {
+        "line": 2,
+        "type": "security",
+        "severity": "critical",
+        "description": "SQL injection vulnerability — user input directly interpolated into query string",
+        "fix": "Use parameterized queries: db.execute('SELECT * FROM users WHERE username=? AND password=?', (username, password))",
+        "keywords": ["SQL", "injection", "parameterized", "f-string", "interpolat", "query"]
+      },
+      {
+        "line": 10,
+        "type": "security",
+        "severity": "major",
+        "description": "MD5 is cryptographically broken — should not be used for hashing sensitive data",
+        "fix": "Use hashlib.sha256() or bcrypt for password hashing",
+        "keywords": ["md5", "sha256", "bcrypt", "weak", "broken", "hash", "insecure"]
+      },
+      {
+        "line": 15,
+        "type": "performance",
+        "severity": "minor",
+        "description": "Unnecessary range(len()) loop — use direct iteration or list()",
+        "fix": "return list(all_users)",
+        "keywords": ["range", "len", "list", "direct", "iteration"]
+      }
+    ]
+  },
+  {
+    "id": "hard_004",
+    "code": "def transfer_funds(from_account, to_account, amount):\n    from_account[\"balance\"] -= amount\n    to_account[\"balance\"] += amount\n    return True\n\ndef process_transactions(transactions):\n    for i in range(len(transactions)):\n        t = transactions[i]\n        transfer_funds(t[\"from\"], t[\"to\"], t[\"amount\"])\n    return transactions\n\ndef log_transaction(transaction):\n    print(f\"Transfer: {transaction['from']['id']} sent ${transaction['amount']} (card: {transaction['from']['card_number']})\")",
+    "context": "Banking functions for transferring funds and processing transactions.",
+    "bugs": [
+      {
+        "line": 2,
+        "type": "logic",
+        "severity": "critical",
+        "description": "No check for sufficient balance — allows negative balance / overdraft",
+        "fix": "Add: if from_account['balance'] < amount: raise ValueError('Insufficient funds')",
+        "keywords": ["balance", "check", "negative", "insufficient", "overdraft", "validate"]
+      },
+      {
+        "line": 7,
+        "type": "performance",
+        "severity": "minor",
+        "description": "Using range(len()) instead of direct iteration over transactions",
+        "fix": "for t in transactions:",
+        "keywords": ["range", "len", "direct", "iteration"]
+      },
+      {
+        "line": 13,
+        "type": "security",
+        "severity": "critical",
+        "description": "Logging credit card number to console is a PCI compliance violation",
+        "fix": "Remove card_number from log output, or mask it: card[-4:]",
+        "keywords": ["card", "number", "log", "print", "PCI", "sensitive", "mask"]
+      }
+    ]
+  },
+  {
+    "id": "hard_005",
+    "code": "def search_users(users, query):\n    results = []\n    for i in range(len(users)):\n        if query in users[i][\"name\"]:\n            results.append(users[i])\n    return results\n\ndef export_data(users):\n    output = \"\"\n    for user in users:\n        output += f\"{user['name']},{user['email']},{user['ssn']}\\n\"\n    return output\n\ndef validate_age(age):\n    if age > 0:\n        return True\n    return False",
+    "context": "User search, data export, and validation utilities.",
+    "bugs": [
+      {
+        "line": 3,
+        "type": "performance",
+        "severity": "minor",
+        "description": "Using range(len()) instead of direct iteration",
+        "fix": "for user in users:",
+        "keywords": ["range", "len", "direct", "iteration"]
+      },
+      {
+        "line": 11,
+        "type": "security",
+        "severity": "critical",
+        "description": "Exporting SSN (Social Security Number) in plaintext is a data privacy violation",
+        "fix": "Remove SSN from export or mask it: ssn[-4:]",
+        "keywords": ["ssn", "social security", "privacy", "sensitive", "plaintext", "mask", "PII"]
+      },
+      {
+        "line": 15,
+        "type": "logic",
+        "severity": "major",
+        "description": "Age validation only checks > 0 but doesn't reject unreasonable ages (e.g., 500, -1 passes as False but 0 is invalid age)",
+        "fix": "if 0 < age <= 150: return True",
+        "keywords": ["range", "upper bound", "150", "unreasonable", "validate", "boundary"]
+      }
+    ]
+  },
+  {
+    "id": "hard_006",
+    "code": "import pickle\nimport yaml\n\ndef load_user_data(data_bytes):\n    return pickle.loads(data_bytes)\n\ndef parse_config(config_string):\n    return yaml.load(config_string)\n\ndef calculate_stats(numbers):\n    total = 0\n    for i in range(len(numbers)):\n        total = total + numbers[i]\n    avg = total / len(numbers)\n    return {\"total\": total, \"average\": avg, \"count\": len(numbers)}",
+    "context": "Data loading, config parsing, and statistics calculation utilities.",
+    "bugs": [
+      {
+        "line": 5,
+        "type": "security",
+        "severity": "critical",
+        "description": "pickle.loads on untrusted data allows arbitrary code execution",
+        "fix": "Use json.loads() or a safe deserialization format",
+        "keywords": ["pickle", "deserialization", "arbitrary", "code execution", "untrusted", "json"]
+      },
+      {
+        "line": 8,
+        "type": "security",
+        "severity": "critical",
+        "description": "yaml.load without Loader parameter allows arbitrary code execution",
+        "fix": "yaml.safe_load(config_string)",
+        "keywords": ["yaml", "safe_load", "Loader", "arbitrary", "unsafe", "code execution"]
+      },
+      {
+        "line": 12,
+        "type": "performance",
+        "severity": "minor",
+        "description": "Using range(len()) with index access instead of direct iteration",
+        "fix": "for num in numbers: total += num  # or use sum()",
+        "keywords": ["range", "len", "sum", "direct", "iteration", "builtin"]
+      }
+    ]
+  },
+  {
+    "id": "hard_007",
+    "code": "def read_file(user_path):\n    with open(user_path, 'r') as f:\n        return f.read()\n\ndef process_records(records):\n    output = []\n    for i in range(len(records)):\n        record = records[i]\n        if record[\"status\"] == \"active\":\n            output.append(record)\n        if record[\"status\"] == \"active\":\n            record[\"processed\"] = True\n    return output\n\ndef format_output(record):\n    return eval(f\"'{record['template']}'.format(**record['data'])\")",
+    "context": "File reading, record processing, and output formatting utilities.",
+    "bugs": [
+      {
+        "line": 2,
+        "type": "security",
+        "severity": "critical",
+        "description": "Opening user-controlled path without sanitization allows reading arbitrary files",
+        "fix": "Validate path against allowed directory: os.path.abspath(user_path).startswith(ALLOWED_DIR)",
+        "keywords": ["path", "arbitrary", "file", "sanitize", "validate", "traversal"]
+      },
+      {
+        "line": 9,
+        "type": "logic",
+        "severity": "major",
+        "description": "Duplicate condition on lines 9 and 11 — same check performed twice, redundant",
+        "fix": "Combine into single if-block",
+        "keywords": ["duplicate", "redundant", "condition", "twice", "repeated", "same check"]
+      },
+      {
+        "line": 16,
+        "type": "security",
+        "severity": "critical",
+        "description": "eval() with user data allows arbitrary code execution",
+        "fix": "Use str.format() directly without eval: record['template'].format(**record['data'])",
+        "keywords": ["eval", "arbitrary", "code execution", "dangerous", "format"]
+      }
+    ]
+  },
+  {
+    "id": "hard_008",
+    "code": "def get_page(url, token):\n    import requests\n    headers = {\"Authorization\": f\"Bearer {token}\"}\n    response = requests.get(url, headers=headers, verify=False)\n    return response.json()\n\ndef cache_results(data):\n    results = {}\n    for i in range(len(data)):\n        results[data[i][\"id\"]] = data[i]\n    return results\n\ndef check_permission(user_role, required_role):\n    if user_role == \"admin\":\n        return True\n    if user_role == required_role:\n        return True\n    return True",
+    "context": "HTTP client, caching, and permission checking utilities.",
+    "bugs": [
+      {
+        "line": 4,
+        "type": "security",
+        "severity": "critical",
+        "description": "verify=False disables SSL certificate verification, enabling MITM attacks",
+        "fix": "Remove verify=False or set verify=True",
+        "keywords": ["verify", "False", "SSL", "certificate", "MITM", "TLS", "insecure"]
+      },
+      {
+        "line": 9,
+        "type": "performance",
+        "severity": "minor",
+        "description": "Using range(len()) instead of direct iteration",
+        "fix": "for item in data: results[item['id']] = item",
+        "keywords": ["range", "len", "direct", "iteration"]
+      },
+      {
+        "line": 18,
+        "type": "logic",
+        "severity": "critical",
+        "description": "Function always returns True — the final 'return True' should be 'return False', bypassing all permission checks",
+        "fix": "return False",
+        "keywords": ["always", "True", "False", "bypass", "permission", "returns True"]
+      }
+    ]
+  },
+  {
+    "id": "hard_009",
+    "code": "def sort_data(items):\n    for i in range(len(items)):\n        for j in range(len(items)):\n            if items[i] < items[j]:\n                items[i], items[j] = items[j], items[i]\n    return items\n\ndef build_query(table, filters):\n    query = f\"SELECT * FROM {table} WHERE \"\n    conditions = []\n    for key, value in filters.items():\n        conditions.append(f\"{key} = '{value}'\")\n    query += \" AND \".join(conditions)\n    return query\n\ndef log_action(user, action):\n    print(f\"User {user['name']} ({user['email']}) performed: {action} with token {user['api_token']}\")",
+    "context": "Sorting, query building, and action logging utilities.",
+    "bugs": [
+      {
+        "line": 3,
+        "type": "performance",
+        "severity": "major",
+        "description": "Bubble sort with incorrect inner loop range — should start from i+1 for efficiency, current implementation is O(n²) with wrong comparisons",
+        "fix": "for j in range(i + 1, len(items)):",
+        "keywords": ["bubble sort", "range", "i+1", "efficiency", "O(n", "inner loop"]
+      },
+      {
+        "line": 12,
+        "type": "security",
+        "severity": "critical",
+        "description": "SQL injection vulnerability — filter values directly interpolated into query",
+        "fix": "Use parameterized queries with placeholders",
+        "keywords": ["SQL", "injection", "parameterized", "interpolat", "f-string", "sanitize"]
+      },
+      {
+        "line": 17,
+        "type": "security",
+        "severity": "critical",
+        "description": "Logging API token in plaintext exposes credentials",
+        "fix": "Remove api_token from log output",
+        "keywords": ["token", "api_token", "log", "print", "credential", "sensitive", "expose"]
+      }
+    ]
+  },
+  {
+    "id": "hard_010",
+    "code": "import json\n\ndef parse_input(raw_data):\n    return eval(raw_data)\n\ndef aggregate(records):\n    totals = {}\n    for i in range(len(records)):\n        category = records[i][\"category\"]\n        amount = records[i][\"amount\"]\n        if category in totals:\n            totals[category] = amount\n        else:\n            totals[category] = amount\n    return totals\n\ndef save_report(report, filename):\n    path = \"/var/reports/\" + filename\n    with open(path, \"w\") as f:\n        json.dump(report, f)",
+    "context": "Data parsing, aggregation, and report saving utilities.",
+    "bugs": [
+      {
+        "line": 4,
+        "type": "security",
+        "severity": "critical",
+        "description": "eval() on raw user data allows arbitrary code execution",
+        "fix": "Use json.loads(raw_data) for safe parsing",
+        "keywords": ["eval", "arbitrary", "code execution", "json.loads", "parse", "unsafe"]
+      },
+      {
+        "line": 12,
+        "type": "logic",
+        "severity": "major",
+        "description": "Should add to existing total (totals[category] += amount) but instead overwrites it, losing previous values",
+        "fix": "totals[category] += amount",
+        "keywords": ["overwrite", "+=", "add", "accumulate", "sum", "lost", "increment"]
+      },
+      {
+        "line": 18,
+        "type": "security",
+        "severity": "major",
+        "description": "Path traversal vulnerability — filename could be '../../../etc/cron.d/evil' to write arbitrary files",
+        "fix": "Sanitize filename: os.path.basename(filename)",
+        "keywords": ["path", "traversal", "..", "basename", "sanitize", "arbitrary", "write"]
+      }
+    ]
+  }
+]
